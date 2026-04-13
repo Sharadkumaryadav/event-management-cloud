@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EventHub | Cloud Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 font-sans min-h-screen">
+    <header class="bg-white shadow-sm p-4 mb-8">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-indigo-600">EventHub</h1>
+            <input id="search" type="text" oninput="filterEvents()" placeholder="Search events..." class="border rounded-lg px-4 py-2 w-64 outline-none">
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-8">
+        <div class="md:col-span-1">
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-6">Create New Event</h2>
+                <div class="space-y-4">
+                    <input id="title" type="text" placeholder="Title" class="w-full border p-3 rounded-xl">
+                    <input id="date" type="date" class="w-full border p-3 rounded-xl">
+                    <input id="location" type="text" placeholder="Location" class="w-full border p-3 rounded-xl">
+                    <button onclick="addEvent()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 transition">Save to Cloud</button>
+                </div>
+            </div>
+        </div>
+        <div class="md:col-span-2">
+            <div id="eventList" class="grid grid-cols-1 gap-4"></div>
+        </div>
+    </main>
+
+    <script>
+        const API = "http://localhost:3000/api/events";
+        let allEvents = [];
+
+        async function load() {
+            try {
+                const res = await fetch(API);
+                allEvents = await res.json();
+                render(allEvents);
+            } catch (err) { console.log(err); }
+        }
+
+        function render(events) {
+            const list = document.getElementById('eventList');
+            list.innerHTML = events.map(e => `
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800">${e.title}</h3>
+                        <p class="text-slate-500 text-sm">📍 ${e.location} | 📅 ${e.date}</p>
+                    </div>
+                    <button onclick="deleteEvent('${e._id}')" class="text-red-500 hover:font-bold">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        async function addEvent() {
+            const title = document.getElementById('title').value;
+            const date = document.getElementById('date').value;
+            const location = document.getElementById('location').value;
+            await fetch(API, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title, date, location})
+            });
+            load();
+        }
+
+        async function deleteEvent(id) {
+            if(confirm("Confirm Delete?")) {
+                await fetch(`${API}/${id}`, { method: 'DELETE' });
+                load();
+            }
+        }
+
+        function filterEvents() {
+            const term = document.getElementById('search').value.toLowerCase();
+            const filtered = allEvents.filter(e => e.title.toLowerCase().includes(term));
+            render(filtered);
+        }
+        load();
+    </script>
+</body>
+</html>
